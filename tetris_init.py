@@ -1,5 +1,6 @@
 from enum import Enum
 import pygame
+
 pygame.init()
 
 screen_width = 600
@@ -15,10 +16,10 @@ y = screen_height / 2
 center_x = screen_width / 2
 center_y = screen_height / 2
 
-rx1 = (screen_width / 2) * (1/2)
-rx2 = (screen_width / 2) * (1/2)
-ry1 = (screen_height / 2) * (1/2)
-ry2 = (screen_height / 2) * (1/2)
+rx1 = (screen_width / 2) * (1 / 2)
+rx2 = (screen_width / 2) * (1 / 2)
+ry1 = (screen_height / 2) * (1 / 2)
+ry2 = (screen_height / 2) * (1 / 2)
 
 COLOR = (255, 100, 98)
 SURFACE_COLOR = (160, 160, 160)
@@ -30,6 +31,7 @@ BOARD_HEIGHT = 20
 
 OFFSET_X = (screen_width - BOARD_WIDTH * BLOCK_SIZE) / 2
 OFFSET_Y = (screen_height - BOARD_HEIGHT * BLOCK_SIZE) / 2
+
 
 class Block(pygame.sprite.Sprite):
     def __init__(self, color, width, height):
@@ -55,34 +57,43 @@ ticks_side = 0
 running = True
 blocks = []
 
+
 def collision_bottom(pos):
-    return pos.y == BOARD_HEIGHT * BLOCK_SIZE - BLOCK_SIZE + OFFSET_Y
-    
+    return pos.y == BOARD_HEIGHT * BLOCK_SIZE + OFFSET_Y
+
+
 def collision_blocks(pos):
     for block in blocks:
-        return pos.y == block + BLOCK_SIZE #?????
+        if pos.y == block.rect.y and pos.x == block.rect.x:
+            return True
+    return False
+
 
 while running:
-
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:    # Did the user click the window close button?
+        if event.type == pygame.QUIT:  # Did the user click the window close button?
             running = False
 
-    if ticks_side == 15:
+    if ticks_side == 5:
         keys = pygame.key.get_pressed()
         if keys[pygame.K_a] and block.rect.x > 0 + OFFSET_X:
             block.rect.x -= BLOCK_SIZE
-        if keys[pygame.K_d] and block.rect.x < (BOARD_WIDTH * BLOCK_SIZE - BLOCK_SIZE) + OFFSET_X:
+        if (
+            keys[pygame.K_d]
+            and block.rect.x < (BOARD_WIDTH * BLOCK_SIZE - BLOCK_SIZE) + OFFSET_X
+        ):
             block.rect.x += BLOCK_SIZE
         ticks_side = 0
 
-    if ticks == 30:
-        newpos = block.rect
+    if ticks == 10:
+        newpos = pygame.Rect(block.rect)
         newpos.y += BLOCK_SIZE
 
+        if newpos.y == 400:
+           newpos.y += 0
+
         # When block touches the bottom, SAVE IT IN THE VARIABLE
-        if collision_bottom(newpos) or collision_blocks:
-            block.rect = newpos
+        if collision_bottom(newpos) or collision_blocks(newpos):
             blocks.append(block)
             block = Block(BLOCK_COLOR, BLOCK_SIZE, BLOCK_SIZE)
             block.rect.x = 0 + OFFSET_X
@@ -90,6 +101,7 @@ while running:
             all_sprites.add(block)
         else:
             block.rect = newpos
+            print(newpos.y)
         # Jeje hechooo, ahora hay que hacer que no se metan los unos dentro de los otros
         ticks = 0
 
@@ -101,7 +113,16 @@ while running:
     screen.fill(SURFACE_COLOR)
 
     # Draw board
-    pygame.draw.rect(screen, (0, 0, 0), pygame.Rect(0 + OFFSET_X, 0 + OFFSET_Y, BLOCK_SIZE * BOARD_WIDTH, BLOCK_SIZE * BOARD_HEIGHT))
+    pygame.draw.rect(
+        screen,
+        (0, 0, 0),
+        pygame.Rect(
+            0 + OFFSET_X,
+            0 + OFFSET_Y,
+            BLOCK_SIZE * BOARD_WIDTH,
+            BLOCK_SIZE * BOARD_HEIGHT,
+        ),
+    )
 
     all_sprites.draw(screen)
     pygame.display.flip()
