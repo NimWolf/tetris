@@ -45,11 +45,17 @@ class Block(pygame.sprite.Sprite):
 
 all_sprites = pygame.sprite.Group()
 
+background = pygame.sprite.Sprite()
+background.image = pygame.image.load('tetris/data/tetris_background.png')
+background.rect = background.image.get_rect()
+background.rect.x = 0 + OFFSET_X
+background.rect.y = 0 + OFFSET_Y
+all_sprites.add(background)
+
 block = Block(BLOCK_COLOR, BLOCK_SIZE, BLOCK_SIZE)
 block.rect.x = 0 + OFFSET_X
 block.rect.y = 0 + OFFSET_Y
 all_sprites.add(block)
-
 
 # Run until the user asks to quit
 ticks = 0
@@ -102,7 +108,6 @@ while running:
         else:
             block.rect = newpos
             print(newpos.y)
-        # Jeje hechooo, ahora hay que hacer que no se metan los unos dentro de los otros
         ticks = 0
 
     # Update
