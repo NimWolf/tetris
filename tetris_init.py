@@ -32,6 +32,7 @@ BOARD_HEIGHT = 20
 OFFSET_X = (screen_width - BOARD_WIDTH * BLOCK_SIZE) / 2
 OFFSET_Y = (screen_height - BOARD_HEIGHT * BLOCK_SIZE) / 2
 
+SPAWN_X = (BOARD_WIDTH / 2) * BLOCK_SIZE
 
 class Block(pygame.sprite.Sprite):
     def __init__(self, color, width, height):
@@ -41,6 +42,48 @@ class Block(pygame.sprite.Sprite):
         self.image.set_colorkey(COLOR)
         pygame.draw.rect(self.image, color, pygame.Rect(0, 0, width, height))
         self.rect = self.image.get_rect()
+
+
+class UserActionType(Enum):
+    EXIT = 0
+    MOVE_LEFT = 1
+    MOVE_RIGHT = 2
+    DROP = 3
+
+
+def input_manager():
+    """
+    Create user actions out of war input
+    :return:
+    """
+    events = []
+
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:    # Did the user click the window close button?
+            events.append(UserActionType.EXIT)
+    
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_a]:
+        events.append(UserActionType.MOVE_LEFT)
+    if keys[pygame.K_d]:
+        events.append(UserActionType.MOVE_RIGHT)
+    
+    return events
+
+
+def parse_inputs(original_events):
+    events_x = 0
+    for event in original_events:
+        if event == UserActionType.MOVE_RIGHT:
+            events_x += 1
+        elif event == UserActionType.MOVE_LEFT:
+            events_x -= 1
+    if events_x > 0:
+        return [UserActionType.MOVE_RIGHT]
+    elif events_x < 0:
+        return [UserActionType.MOVE_LEFT]
+    elif events_x == 0:
+        return []
 
 
 all_sprites = pygame.sprite.Group()
@@ -53,7 +96,7 @@ background.rect.y = 0 + OFFSET_Y
 all_sprites.add(background)
 
 block = Block(BLOCK_COLOR, BLOCK_SIZE, BLOCK_SIZE)
-block.rect.x = 0 + OFFSET_X
+block.rect.x = SPAWN_X + OFFSET_X
 block.rect.y = 0 + OFFSET_Y
 all_sprites.add(block)
 
@@ -74,41 +117,49 @@ def collision_blocks(pos):
             return True
     return False
 
+input_events = []
 
 while running:
+    
+    input_events += input_manager()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:  # Did the user click the window close button?
             running = False
 
-    if ticks_side == 5:
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_a] and block.rect.x > 0 + OFFSET_X:
-            block.rect.x -= BLOCK_SIZE
-        if (
-            keys[pygame.K_d]
-            and block.rect.x < (BOARD_WIDTH * BLOCK_SIZE - BLOCK_SIZE) + OFFSET_X
-        ):
-            block.rect.x += BLOCK_SIZE
-        ticks_side = 0
-
     if ticks == 10:
+        input_events = parse_inputs(input_events)
+
+        # Calc new pos only with gravity
         newpos = pygame.Rect(block.rect)
         newpos.y += BLOCK_SIZE
 
-        if newpos.y == 400:
-           newpos.y += 0
+        # Check user action
+        newpos_user = pygame.Rect(newpos)
+
+        if UserActionType.MOVE_LEFT in input_events and newpos_user.x > 0 + OFFSET_X:
+            newpos_user.x -= BLOCK_SIZE
+        if (UserActionType.MOVE_RIGHT in input_events
+            and newpos_user.x < (BOARD_WIDTH * BLOCK_SIZE - BLOCK_SIZE) + OFFSET_X):
+            newpos_user.x += BLOCK_SIZE
 
         # When block touches the bottom, SAVE IT IN THE VARIABLE
-        if collision_bottom(newpos) or collision_blocks(newpos):
-            blocks.append(block)
-            block = Block(BLOCK_COLOR, BLOCK_SIZE, BLOCK_SIZE)
-            block.rect.x = 0 + OFFSET_X
-            block.rect.y = 0 + OFFSET_Y
-            all_sprites.add(block)
+        if collision_bottom(newpos_user) or collision_blocks(newpos_user):
+            if collision_bottom(newpos) or collision_blocks(newpos):
+                blocks.append(block)
+                block = Block(BLOCK_COLOR, BLOCK_SIZE, BLOCK_SIZE)
+                block.rect.x = SPAWN_X + OFFSET_X
+                block.rect.y = 0 + OFFSET_Y
+                all_sprites.add(block)
+            else:
+                block.rect = newpos
+                # print(newpos.y)
         else:
-            block.rect = newpos
-            print(newpos.y)
+            block.rect = newpos_user
+            # print(newpos_user.y)
+            
         ticks = 0
+        input_events = []
 
     # Update
     all_sprites.update()
@@ -139,3 +190,10 @@ while running:
 
 # Done! Time to quit.
 pygame.quit()
+
+
+
+# PROBLEMAS:
+# botón exit no funciona
+# a veces das click una sola vez y se mueve dos veces
+# condiciones de perder una partida
